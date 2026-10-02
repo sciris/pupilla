@@ -4,6 +4,7 @@ project:
 
 website:
   title: "pupilla"
+  favicon: favicon.svg
   site-url: "https://sciris.github.io/pupilla/"
   repo-url: "https://github.com/sciris/pupilla"
   repo-actions: [source, issue]
