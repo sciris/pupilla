@@ -7,7 +7,7 @@ bibliography: references.bib
 link-citations: true
 ---
 
-Claude Code mods came out today, and Pupilla is one of the first. A mod is a plugin of function hooks that runs inside Claude Code itself: it can watch every turn, draw its own UI above the prompt, call models, and remember things across sessions. That turns out to be exactly what you need to build something I've wanted for a while: an agent that pays attention to *you*.
+Claude Code mods came out today, which makes Pupilla one of the earlier ones. A mod is a plugin of function hooks that runs inside Claude Code itself: it can watch every turn, draw its own UI above the prompt, call models, and remember things across sessions. That turns out to be exactly what you need to build something I've wanted for a while: an agent that pays attention to *you*.
 
 ## A reverse LLM
 
@@ -30,15 +30,15 @@ Every time Claude Code finishes a turn, Pupilla reads what the agent just said a
 </pre>
 ```
 
-Press `1` and the guess drops into the prompt box; press Enter to send it, or edit it first. If the top guess is confident enough, it is also the dim suggestion in the empty prompt, so Tab takes it. And if Pupilla has no real idea what you'll say, it shows nothing at all. Abstaining is a feature: a wall of bad guesses is worse than none.
+Press `1` and the guess drops into the prompt box; press Enter to send it, or edit it first. If the top guess is confident enough, it is also the dim suggestion in the empty prompt, so Tab takes it. And if Pupilla has no real idea what you'll say, it shows nothing at all, because that would be extremely annoying (though maybe at times funny).
 
 The ambition is simple and slightly absurd: after a while, you should only rarely need to type a prompt, because Pupilla will usually have already written it.
 
 ## Why "Pupilla"?
 
-*Pupilla* is Latin for "little doll", the diminutive of *pupa*, a girl or doll. It's also where we get the word *pupil*, for the black center of the eye. When you look closely into someone's eye, you see a tiny image of yourself reflected there, and the Romans called that little figure a *pupilla*.
+*Pupilla* is Latin for "little doll", the diminutive of *pupa*, a child or doll. It's also where we get the word *pupil*, for the black center of the eye. When you look closely into someone's eye, you see a tiny image of yourself reflected there, and the Romans called that little figure a *pupilla*.
 
-Both meanings fit. Pupilla is an extremely attentive agent: it watches every exchange and studies how you respond. And what it builds from all that watching is a small reflection of you. Today that reflection can guess your next message. Eventually, it should become a little virtual copy of you: one that knows when you'll say "commit this", when you'll ask for tests, when you'll push back, and how you'll phrase it.
+Both meanings fit. Pupilla is an extremely attentive agent: it watches every exchange and studies how you respond. And what it builds from all that watching is a small reflection of you. Today that reflection can guess your next message. Eventually, it should become a little virtual copy of you: one that knows when you'll say "commit this", when you'll ask for tests, when you'll push back, and how you'll phrase it. Train it well, and it will start scrolling mindlessly on Instagram, just like you.
 
 ## How it works
 
@@ -54,7 +54,7 @@ flowchart LR
   E -. every few<br/>dozen turns .-> F[Reflect: rewrite<br/>rules and profile]
 ```
 
-**Predict.** By default, Pupilla forks the session's own model over the conversation it already has cached, so the prediction sees the full context at little extra cost. The predictor gets Pupilla's memory of you (a short profile, a bank of rules, your most frequent prompts, and similar past exchanges). It first infers your likely state (satisfied, blocked, about to correct something, wrapping up) and then writes up to five *different* candidate replies. They are written in your voice, not the assistant's, and each comes with a probability. The probabilities are mutually exclusive, and whatever is left over is "something else".
+**Predict.** By default, Pupilla forks the session's own model over the conversation it already has cached, so the prediction sees the full context at little extra cost. The predictor gets Pupilla's memory of you (a short profile, a bank of rules, your most frequent prompts, and similar past exchanges). It first infers your likely state (satisfied, blocked, about to correct something, wrapping up) and then writes up to five *different* candidate replies. They are written in your voice, not the assistant's (because let's be honest, AI isn't *[Black Mirror](https://www.reddit.com/r/blackmirror/comments/lxania/i_dont_quite_understand_the_cookie_in_white/)* enough already), and each comes with a probability. The probabilities are mutually exclusive, and whatever is left over is "something else".
 
 **Show or abstain.** The stated probabilities are recalibrated against your history (more on that below). A set is shown only if its total calibrated probability clears a threshold. At most one guess can be labelled high.
 
@@ -72,13 +72,13 @@ The middle one is the most informative. An edit shows exactly what the guess got
 
 ## The learning rules
 
-Before building Pupilla, I looked for prior work. There's plenty on simulating users, personalizing models with memory, and calibrating LLM confidence, but nothing that does this exact job: one user, learning online, a set of guesses with calibrated confidence, and the option to say nothing. So Pupilla combines the pieces that fit:
+Personalized AI is of course a very active field, so there's plenty of prior work here. There's plenty on simulating users, personalizing models with memory, and calibrating LLM confidence, but nothing that does this exact job: one user, learning online, a set of guesses with calibrated confidence, and the option to say nothing. So Pupilla combines the pieces that fit:
 
 | Part | What Pupilla does | Borrowed from |
 | --- | --- | --- |
 | Memory | Raw (agent output → your reply) episodes are the source of truth. A short profile and at most 40 plain-language rules are derived from them in batches, never rewritten every turn. | MemGPT [@packer2023]; Zhang et al. [-@zhang2026] on memories degrading when an LLM re-summarizes them every turn |
 | Prediction | Infer your state first, then write candidates in your style, each with a probability and the rules it relied on. | HumanLM [@wu2026]; Naous et al. [-@naous2025] on assistant models making poor user simulators; Tian et al. [-@tian2023] on verbalized confidence |
-| Rules | Each rule ("when the agent asks whether to commit, Cliff says 'commit this'") carries a discounted Beta score. Rules enter the prompt by upper confidence bound, so new ones get tried, and old evidence fades so the bank tracks your habits as they change. | HypoGeniC [@zhou2024] |
+| Rules | Each rule ("when the agent asks whether to commit, the user says 'commit this'") carries a discounted Beta score. Rules enter the prompt by upper confidence bound, so new ones get tried, and old evidence fades so the bank tracks your habits as they change. | HypoGeniC [@zhou2024] |
 | Reflection | After 5 misses or 25 turns, a larger model proposes at most four add / edit / delete operations on the rules, checked against recent replies, and rewrites the profile. | ExpeL [@zhao2024]; Reflexion [@shinn2023]; CIPHER [@gao2024], which learns from user edits |
 | Calibration | Stated probabilities are mapped to observed hit rates through ten reliability bins, shrunk toward the stated value while a bin is thin. | Histogram binning |
 | Abstention | The show threshold moves online toward a 50% hit rate for shown sets. A shown miss raises it, a shown hit lowers it, and a hidden set that would have hit lowers it too. | Adaptive conformal inference [@gibbs2021]; Mozannar et al. [-@mozannar2024] on when to show a suggestion |
@@ -132,13 +132,13 @@ Each turn makes one prediction call, plus one cheap grading call unless you sent
 
 ## Caveats
 
-This is version 0.1, built on an API that shipped today and is labelled early access. The learning rules are tested, and the whole predict → show → pick → grade → learn loop runs end to end against Claude Code's own test harness. But no one has yet used Pupilla for weeks, which is the only real test of whether it converges on a useful copy of you. Expect the tuning constants (the show threshold's target, the rule discount, the reflection cadence) to move as real data comes in.
+This is version 0.1, built on an API that shipped today and is labeled early access. The learning rules are tested, and the whole predict → show → pick → grade → learn loop runs end to end against Claude Code's own test harness. But no one has yet used Pupilla for a significant period of time, which is the only real test of whether it converges on a useful copy of you. Expect the tuning constants (the show threshold's target, the rule discount, the reflection cadence) to move as real data comes in.
 
 Two smaller things: if two sessions finish a turn at the same moment, one of their updates can be lost, since they share one memory; and Pupilla's guesses are only as private as your Claude Code session, because they are made by the same models.
 
 ## Where it's going
 
-Right now, Pupilla predicts one message at a time and waits for you to choose. The next steps follow from the numbers it already tracks. When the as-is rate for a certain kind of turn gets high enough, Pupilla could offer to send its guess automatically after a pause. Its rules about you are plain English, so they could be shared with other agents, or reviewed and edited by you directly. And the profile it builds (how you write, what you care about, what you'll ask for next) is the beginning of the little virtual copy of you that the name promises.
+Right now, Pupilla predicts one message at a time and waits for you to choose. The next steps follow from the numbers it already tracks. When the as-is rate for a certain kind of turn gets high enough, Pupilla could offer to send its guess automatically after a pause. Its rules about you are plain English, so they could be shared with other agents, or reviewed and edited by you directly. And the profile it builds (how you write, what you care about, what you'll ask for next) is the beginning of the little virtual copy of you that the name promises. Exciting? Disquieting? Probably a bit of both, right?
 
 The code is MIT-licensed and [on GitHub](https://github.com/sciris/pupilla). Issues and ideas are welcome.
 
