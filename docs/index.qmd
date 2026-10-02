@@ -1,0 +1,148 @@
+---
+title: "Introducing Pupilla: an extremely attentive agentic pupil"
+subtitle: "A Claude Code mod that learns to predict what you'll say next"
+author: "Cliff Kerr"
+date: 2026-10-01
+bibliography: references.bib
+link-citations: true
+---
+
+Claude Code mods came out today, and Pupilla is one of the first. A mod is a plugin of function hooks that runs inside Claude Code itself: it can watch every turn, draw its own UI above the prompt, call models, and remember things across sessions. That turns out to be exactly what you need to build something I've wanted for a while: an agent that pays attention to *you*.
+
+## A reverse LLM
+
+A language model predicts its output from your input. Pupilla does the reverse: it predicts your input from the model's output.
+
+Every time Claude Code finishes a turn, Pupilla reads what the agent just said and guesses what you're about to type back. It offers up to five guesses above the prompt, each with a confidence:
+
+```{=html}
+<pre class="mockup">
+ ● All 40 tests pass. Want me to commit this, or keep going on the docs?
+
+ pupilla guesses · digit picks, Enter sends, Tab takes the dim one
+ 1: commit this                                    <span style="color:#3fa66b">high 62%</span>
+ 2: keep going on the docs                         <span style="color:#c9a227">medium 21%</span>
+ 3: run the full suite first                       <span style="opacity:.55">low 6%</span>
+ ╭──────────────────────────────────────────────────────────╮
+ │ &gt; <span style="opacity:.5">commit this</span>                                            │
+ ╰──────────────────────────────────────────────────────────╯
+ ⚠ pupilla: learning 🤓 · 41% hit · n=52
+</pre>
+```
+
+Press `1` and the guess drops into the prompt box; press Enter to send it, or edit it first. If the top guess is confident enough, it is also the dim suggestion in the empty prompt, so Tab takes it. And if Pupilla has no real idea what you'll say, it shows nothing at all. Abstaining is a feature: a wall of bad guesses is worse than none.
+
+The ambition is simple and slightly absurd: after a while, you should only rarely need to type a prompt, because Pupilla will usually have already written it.
+
+## Why "Pupilla"?
+
+*Pupilla* is Latin for "little doll", the diminutive of *pupa*, a girl or doll. It's also where we get the word *pupil*, for the black center of the eye. When you look closely into someone's eye, you see a tiny image of yourself reflected there, and the Romans called that little figure a *pupilla*.
+
+Both meanings fit. Pupilla is an extremely attentive agent: it watches every exchange and studies how you respond. And what it builds from all that watching is a small reflection of you. Today that reflection can guess your next message. Eventually, it should become a little virtual copy of you: one that knows when you'll say "commit this", when you'll ask for tests, when you'll push back, and how you'll phrase it.
+
+## How it works
+
+Each turn runs one loop:
+
+```{mermaid}
+%%| fig-width: 8
+flowchart LR
+  A[Agent finishes<br/>a turn] --> B[Predict up to<br/>5 guesses]
+  B --> C[Show them, or<br/>stay quiet]
+  C --> D[You reply]
+  D --> E[Grade every guess;<br/>update calibration,<br/>rules, threshold]
+  E -. every few<br/>dozen turns .-> F[Reflect: rewrite<br/>rules and profile]
+```
+
+**Predict.** By default, Pupilla forks the session's own model over the conversation it already has cached, so the prediction sees the full context at little extra cost. The predictor gets Pupilla's memory of you (a short profile, a bank of rules, your most frequent prompts, and similar past exchanges). It first infers your likely state (satisfied, blocked, about to correct something, wrapping up) and then writes up to five *different* candidate replies. They are written in your voice, not the assistant's, and each comes with a probability. The probabilities are mutually exclusive, and whatever is left over is "something else".
+
+**Show or abstain.** The stated probabilities are recalibrated against your history (more on that below). A set is shown only if its total calibrated probability clears a threshold. At most one guess can be labelled high.
+
+**Grade.** When you send your reply, Pupilla grades every guess against it, including the ones it didn't show. An exact match is free. Otherwise a small model (Haiku by default) scores each guess as 1 (you could have sent this instead), ½ (same intent, different specifics) or 0 (a different request).
+
+**Track what you did.** Every reply to a shown set is classified as one of three outcomes:
+
+- you **sent a guess as-is**,
+- you **took a guess and edited it** before sending, or
+- you **wrote your own**.
+
+The middle one is the most informative. An edit shows exactly what the guess got wrong, so edited pairs (what you took, what you sent) go straight to the reflection step.
+
+**Learn.** Calibration, rule credit and the show threshold update after every reply. The rules themselves are rewritten only occasionally, in batches.
+
+## The learning rules
+
+Before building Pupilla, I looked for prior work. There's plenty on simulating users, personalizing models with memory, and calibrating LLM confidence, but nothing that does this exact job: one user, learning online, a set of guesses with calibrated confidence, and the option to say nothing. So Pupilla combines the pieces that fit:
+
+| Part | What Pupilla does | Borrowed from |
+| --- | --- | --- |
+| Memory | Raw (agent output → your reply) episodes are the source of truth. A short profile and at most 40 plain-language rules are derived from them in batches, never rewritten every turn. | MemGPT [@packer2023]; Zhang et al. [-@zhang2026] on memories degrading when an LLM re-summarizes them every turn |
+| Prediction | Infer your state first, then write candidates in your style, each with a probability and the rules it relied on. | HumanLM [@wu2026]; Naous et al. [-@naous2025] on assistant models making poor user simulators; Tian et al. [-@tian2023] on verbalized confidence |
+| Rules | Each rule ("when the agent asks whether to commit, Cliff says 'commit this'") carries a discounted Beta score. Rules enter the prompt by upper confidence bound, so new ones get tried, and old evidence fades so the bank tracks your habits as they change. | HypoGeniC [@zhou2024] |
+| Reflection | After 5 misses or 25 turns, a larger model proposes at most four add / edit / delete operations on the rules, checked against recent replies, and rewrites the profile. | ExpeL [@zhao2024]; Reflexion [@shinn2023]; CIPHER [@gao2024], which learns from user edits |
+| Calibration | Stated probabilities are mapped to observed hit rates through ten reliability bins, shrunk toward the stated value while a bin is thin. | Histogram binning |
+| Abstention | The show threshold moves online toward a 50% hit rate for shown sets. A shown miss raises it, a shown hit lowers it, and a hidden set that would have hit lowers it too. | Adaptive conformal inference [@gibbs2021]; Mozannar et al. [-@mozannar2024] on when to show a suggestion |
+| Scoring | A running Brier score over each guess set, plus "something else". | Proper scoring rules [@gneiting2007] |
+| Style prior | Prompts you've sent more than once are offered to the predictor as cheap, likely candidates. | Smart Reply [@kannan2016] |
+
+Two design choices matter most.
+
+First, **hidden guesses still teach**. Pupilla always generates candidates and grades them against your reply, even when it decided not to show them. So staying quiet costs nothing in learning: every turn is a calibration data point.
+
+Second, **the raw log is the truth, and summaries are derived from it**. It's tempting to have an LLM update a running description of the user after every turn, but repeated re-summarization drifts. Pupilla keeps the exchanges themselves and rebuilds its rules and profile from them in batches.
+
+## Installing it
+
+You'll need a version of Claude Code with mods (2.1.287 or later). The repo is its own plugin marketplace:
+
+```bash
+claude plugin marketplace add sciris/pupilla
+claude plugin install pupilla@pupilla
+```
+
+Or run it straight from a clone, which also reloads it whenever you edit the source:
+
+```bash
+git clone https://github.com/sciris/pupilla
+claude --plugin-dir ./pupilla
+```
+
+Then just work as usual. The status line shows `pupilla: learning 🤓` with the running hit rate and turn count.
+
+## Using it
+
+| Command | What it does |
+| --- | --- |
+| `/pupilla` | Show stats: how often you sent a guess as-is, edited one, or wrote your own; hit rates; the calibration table; the profile; and every rule with its match rate |
+| `/pupilla off`, `/pupilla on` | Pause or resume (the status line says `sleeping 😴` while paused) |
+| `/pupilla reflect` | Rewrite the rules and profile now |
+| `/pupilla forget yes` | Erase everything Pupilla has learned |
+
+In `/config`, you can choose which models do what:
+
+- **predictor**: `fork` (the default, using the session's own model and cache) or a standalone `haiku`, `sonnet` or `opus` call. The standalone options are cheaper but see only Pupilla's memory and the last output, not the whole conversation.
+- **grader**: `haiku` (default) or `sonnet`.
+- **reflector**: `sonnet` (default), `haiku` or `opus`.
+
+Pupilla's memory is shared across all your projects and sessions. It's learning you, not one repository.
+
+## What it costs
+
+Each turn makes one prediction call, plus one cheap grading call unless you sent a guess unchanged. In the default fork mode, the prediction reuses the session's prompt cache, so you pay mostly for Pupilla's own memory block and a short reply. Reflection runs every few dozen turns. If cost matters more than accuracy, set the predictor to `haiku`.
+
+## Caveats
+
+This is version 0.1, built on an API that shipped today and is labelled early access. The learning rules are tested, and the whole predict → show → pick → grade → learn loop runs end to end against Claude Code's own test harness. But no one has yet used Pupilla for weeks, which is the only real test of whether it converges on a useful copy of you. Expect the tuning constants (the show threshold's target, the rule discount, the reflection cadence) to move as real data comes in.
+
+Two smaller things: if two sessions finish a turn at the same moment, one of their updates can be lost, since they share one memory; and Pupilla's guesses are only as private as your Claude Code session, because they are made by the same models.
+
+## Where it's going
+
+Right now, Pupilla predicts one message at a time and waits for you to choose. The next steps follow from the numbers it already tracks. When the as-is rate for a certain kind of turn gets high enough, Pupilla could offer to send its guess automatically after a pause. Its rules about you are plain English, so they could be shared with other agents, or reviewed and edited by you directly. And the profile it builds (how you write, what you care about, what you'll ask for next) is the beginning of the little virtual copy of you that the name promises.
+
+The code is MIT-licensed and [on GitHub](https://github.com/sciris/pupilla). Issues and ideas are welcome.
+
+## References {.unnumbered}
+
+::: {#refs}
+:::

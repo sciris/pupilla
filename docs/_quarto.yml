@@ -1,0 +1,25 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "pupilla"
+  site-url: "https://sciris.github.io/pupilla/"
+  repo-url: "https://github.com/sciris/pupilla"
+  repo-actions: [source, issue]
+  navbar:
+    right:
+      - icon: github
+        href: "https://github.com/sciris/pupilla"
+        aria-label: GitHub
+
+format:
+  html:
+    theme:
+      light: [litera, styles.scss]
+      dark: [darkly, styles.scss]
+    toc: true
+    toc-depth: 2
+    smooth-scroll: true
+    code-copy: true
+    link-external-newwindow: true

@@ -4,6 +4,8 @@ A Claude Code mod that learns to predict your next prompt. It works like a rever
 
 Every reply you send, typed or picked, is a training example. The goal is that, over time, you mostly pick rather than type.
 
+Read the introduction: [Introducing Pupilla: an extremely attentive agentic pupil](https://sciris.github.io/pupilla/) (source in `docs/`).
+
 ## How it learns
 
 No published framework does this directly: one user, online, a text memory, a top-5 set with calibrated confidence and abstention. pupilla combines the parts that fit:
@@ -28,7 +30,7 @@ Model calls per turn: one prediction, plus one grading call unless the reply was
 - `/pupilla off` / `/pupilla on`: stop or resume predicting (learning stops too).
 - `/pupilla reflect`: run a reflection now.
 - `/pupilla forget yes`: erase everything learned.
-- The status line shows `pupilla <as-is %> as-is · <edited %> edited · n=<turns with guesses shown>`.
+- The status line shows `pupilla: learning 🤓 · <hit rate> hit · n=<graded turns>`, or `pupilla: sleeping 😴` while it is off.
 
 Settings (`/config`, under pupilla):
 

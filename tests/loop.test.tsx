@@ -15,10 +15,14 @@ test('predicts after a turn, shows guesses, and learns from the reply', { option
   mock.store(on)
   const filled: string[] = []
   const suggested: string[] = []
+  const statuses: (string | undefined)[] = []
   on('model.complete', () => ({ value: { isAnswered: true, text: GUESSES, usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }))
   on('session.root', () => ({ value: '/home/someone/proj' }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
-  on('ui.status', () => ({ value: undefined }))
+  on('ui.status', (_$, e) => {
+    statuses.push(e.text)
+    return { value: undefined }
+  })
   on('ui.log', () => ({ value: undefined }))
   on('prompt.suggest', (_$, e) => {
     suggested.push(e.text)
@@ -56,4 +60,22 @@ test('predicts after a turn, shows guesses, and learns from the reply', { option
   expect(text).toContain('Graded turns: 1')
   expect(text).toContain('top-1 match: 100%')
   expect(text).toContain('sent one as-is 1 (100%)')
+  expect(statuses.at(-1)).toBe('learning 🤓 · 100% hit · n=1')
+})
+
+test('the status line says learning with stats, or sleeping when off', async ($, on) => {
+  mock.store(on)
+  const lines: (string | undefined)[] = []
+  on('session.root', () => ({ value: '/home/someone/proj' }))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('ui.status', (_$, e) => {
+    lines.push(e.text)
+    return { value: undefined }
+  })
+  on('command.run', () => ({ text: '' }))
+  on('session.start', (_$, e) => e)
+  await $.session.start({ cwd: '/home/someone/proj', surface: 'terminal', isInteractive: true })
+  expect(lines.at(-1)).toBe('learning 🤓')
+  await $.command.run({ command: 'pupilla', args: 'off', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
+  expect(lines.at(-1)).toBe('sleeping 😴')
 })

@@ -57,14 +57,14 @@ async function isEnabled($: EngineInterface): Promise<boolean> {
   return (await $.store.get(ENABLED)) !== false
 }
 
+// The engine leads the line with "⚠ pupilla: ".
 async function showStatus($: EngineInterface): Promise<void> {
   if (!(await isEnabled($))) {
-    $.ui.status('pupilla off')
+    $.ui.status('sleeping 😴')
     return
   }
   const s = loadMemory(await $.store.get(MEMORY)).stats
-  const shown = s.accepted + s.edited + s.own
-  $.ui.status(shown === 0 ? 'pupilla learning' : `pupilla ${percent(s.accepted, shown)} as-is · ${percent(s.edited, shown)} edited · n=${shown}`)
+  $.ui.status(s.turns === 0 ? 'learning 🤓' : `learning 🤓 · ${percent(s.any, s.turns)} hit · n=${s.turns}`)
 }
 
 async function predict($: EngineInterface, output: string, turnId: string): Promise<void> {

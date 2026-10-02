@@ -4,3 +4,11 @@
 node_modules/
 *.log
 .DS_Store
+
+# Quarto build output (the Docs workflow renders and deploys it)
+docs/_site/
+docs/.quarto/
+/.quarto/
+
+# Browser automation scratch
+.playwright-mcp/
