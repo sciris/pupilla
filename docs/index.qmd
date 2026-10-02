@@ -1,7 +1,7 @@
 ---
 title: "Introducing Pupilla: an extremely attentive agentic pupil"
 subtitle: "A Claude Code mod that learns to predict what you'll say next"
-author: "Cliff Kerr"
+author: "Cl(aude)iff Kerr"
 date: 2026-10-01
 bibliography: references.bib
 link-citations: true
