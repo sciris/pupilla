@@ -1,11 +1,27 @@
 /*-- scss:defaults --*/
-$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+@import url("https://fonts.googleapis.com/css2?family=Rosario:ital,wght@0,300..700;1,300..700&family=Rosarivo:ital@0;1&display=swap");
+
+$font-family-sans-serif: "Rosario", system-ui, -apple-system, "Segoe UI", sans-serif;
+$font-family-base: $font-family-sans-serif;
+// Rosarivo has one weight; a bolder heading would be synthesized.
+$headings-font-family: "Rosarivo", Georgia, serif;
+$headings-font-weight: 400;
 $font-size-root: 17px;
 $line-height-base: 1.6;
 
 /*-- scss:rules --*/
 .quarto-title .title {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+}
+
+// Litera sets its own serif on the body text; use Rosario throughout.
+body,
+p,
+li,
+td,
+th,
+.quarto-title-meta {
+  font-family: $font-family-sans-serif;
 }
 
 // Mockups of the terminal: tight, monospace, no wrapping.
