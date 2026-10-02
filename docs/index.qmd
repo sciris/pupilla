@@ -7,7 +7,7 @@ bibliography: references.bib
 link-citations: true
 ---
 
-Claude Code mods came out today, which makes Pupilla one of the earlier ones. A mod is a plugin of function hooks that runs inside Claude Code itself: it can watch every turn, draw its own UI above the prompt, call models, and remember things across sessions. That turns out to be exactly what you need to build something I've wanted for a while: an agent that pays attention to *you*.
+Claude Code mods came out today, which makes Pupilla one of the earlier ones. A mod is a plugin of function hooks that runs inside Claude Code itself: it can watch every turn, draw its own UI above the prompt, call models, and remember things across sessions. That turns out to be exactly what you need to build a tool that holds enormous promise and is just a wee bit disturbing: an agent that directs its Cyclopean gaze directly at you.
 
 ## A reverse LLM
 
