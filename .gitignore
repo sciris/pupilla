@@ -1,0 +1,6 @@
+# Type declarations the engine lays beside the mod at every load
+.claude-plugin/types/
+
+node_modules/
+*.log
+.DS_Store

@@ -1,0 +1,52 @@
+{
+  "name": "pupilla",
+  "version": "0.1.0",
+  "description": "Learns to predict your next prompt from the agent's last output, and offers up to 5 calibrated guesses to pick from",
+  "author": {
+    "name": "Cliff Kerr"
+  },
+  "license": "MIT",
+  "keywords": [
+    "prediction",
+    "suggestions",
+    "learning",
+    "calibration",
+    "mod"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "predictor": {
+      "type": "string",
+      "title": "Predictor",
+      "description": "Which model guesses your next prompt: fork (the session's own model over the cached transcript; best context) or a standalone model that sees only the memory and the last output",
+      "default": "fork",
+      "options": [
+        "fork",
+        "haiku",
+        "sonnet",
+        "opus"
+      ]
+    },
+    "grader": {
+      "type": "string",
+      "title": "Grader",
+      "description": "Model that scores the guesses against what you actually typed",
+      "default": "haiku",
+      "options": [
+        "haiku",
+        "sonnet"
+      ]
+    },
+    "reflector": {
+      "type": "string",
+      "title": "Reflector",
+      "description": "Model that periodically rewrites the rules and profile from accumulated misses",
+      "default": "sonnet",
+      "options": [
+        "haiku",
+        "sonnet",
+        "opus"
+      ]
+    }
+  }
+}

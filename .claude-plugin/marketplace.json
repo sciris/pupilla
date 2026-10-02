@@ -1,0 +1,19 @@
+{
+  "name": "pupilla",
+  "owner": {
+    "name": "Cliff Kerr",
+    "email": "cliff.kerr@gatesfoundation.org"
+  },
+  "metadata": {
+    "description": "pupilla marketplace: a Claude Code mod that learns to predict your next prompt.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "pupilla",
+      "source": ".",
+      "description": "Learns to predict your next prompt from the agent's last output, and offers up to 5 calibrated guesses to pick from.",
+      "keywords": ["prediction", "suggestions", "learning", "calibration", "mod"]
+    }
+  ]
+}
